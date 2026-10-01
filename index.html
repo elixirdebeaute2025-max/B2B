@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline CRM B2B - Dashboard, Paiement, Charges & Instructeurs</title>
+    <!-- Library SheetJS pour Export / Import Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: #ffffff;
+            padding: 20px 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: #0f172a;
+        }
+
+        .header-btns {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-add { background-color: #0284c7; color: white; }
+        .btn-add:hover { background-color: #0369a1; }
+
+        .btn-inst { background-color: #d97706; color: white; }
+        .btn-inst:hover { background-color: #b45309; }
+
+        .btn-sim { background-color: #8b5cf6; color: white; }
+        .btn-sim:hover { background-color: #7c3aed; }
+
+        .btn-excel-exp { background-color: #16a34a; color: white; }
+        .btn-excel-exp:hover { background-color: #15803d; }
+
+        .btn-excel-imp { background-color: #0d9488; color: white; }
+        .btn-excel-imp:hover { background-color: #0f766e; }
+
+        /* DASHBOARD CARDS */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .dash-card {
+            background: #ffffff;
+            padding: 18px 20px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .dash-card .title {
+            font-size: 0.78rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .dash-card .value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .dash-card .sub-text {
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        /* FILTERS BAR */
+        .filters-bar {
+            background: #ffffff;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filters-bar input, .filters-bar select {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .filters-bar input:focus, .filters-bar select:focus {
+            border-color: #0284c7;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .table-container {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow-x: auto;
+            max-height: 65vh;
+            border: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            white-space: nowrap;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            background-color: #ffffff;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        .sticky-col-1 {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            background-color: #ffffff;
+            border-right: 1px solid #cbd5e1;
+        }
+
+        .sticky-col-2 {
+            position: sticky;
+            left: 110px;
+            z-index: 10;
+            background-color: #ffffff;
+            border-right: 2px solid #94a3b8;
+            box-shadow: 4px 0 6px -2px rgba(0,0,0,0.05);
+        }
+
+        th.sticky-col-1, th.sticky-col-2 {
+            z-index: 30;
+            background-color: #f1f5f9;
+        }
+
+        tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn-edit { background-color: #3b82f6; color: white; margin-right: 4px; }
+        .btn-edit:hover { background-color: #2563eb; }
+        .btn-delete { background-color: #ef4444; color: white; }
+        .btn-delete:hover { background-color: #dc2626; }
+
+        .badge-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .badge-paye { background: #dcfce7; color: #15803d; font-weight: bold; }
+        .badge-partiel { background: #fef3c7; color: #b45309; font-weight: bold; }
+        .badge-nonpaye { background: #fee2e2; color: #b91c1c; font-weight: bold; }
+
+        .badge-priority {
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .p-Haute { background: #fee2e2; color: #991b1b; }
+        .p-Moyenne { background: #fef3c7; color: #92400e; }
+        .p-Basse { background: #f1f5f9; color: #475569; }
+
+        /* MODALS */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(3px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 950px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 25px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        .sim-modal-content {
+            max-width: 600px;
+            border-top: 5px solid #8b5cf6;
+        }
+
+        .inst-modal-content {
+            max-width: 850px;
+            border-top: 5px solid #d97706;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .modal-header h3 {
+            color: #0f172a;
+            font-size: 1.25rem;
+        }
+
+        .close-btn {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 5px;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #0284c7;
+        }
+
+        .form-group input[readonly] {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .sim-result-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .sim-card {
+            background: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .sim-card label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .sim-card span {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+        }
+
+        .btn-save { background-color: #0284c7; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: 600; }
+        .btn-cancel { background-color: #64748b; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>📈 Pipeline CRM - Suivi, Paiements, Charges & Instructeurs</h1>
+            <div class="header-btns">
+                <button class="btn btn-inst" onclick="openInstructorsModal()">👨‍🏫 Liste Instructeurs</button>
+                <button class="btn btn-excel-exp" onclick="exportToExcel()">📊 Export Pipeline Excel</button>
+                <button class="btn btn-excel-imp" onclick="document.getElementById('excelFileInput').click()">📥 Import Pipeline (+Ajouter)</button>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="importFromExcel(event)">
+                <button class="btn btn-sim" onclick="openSimModal()">🧮 Simulateur</button>
+                <button class="btn btn-add" onclick="openModal()">+ Ajouter Client</button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD KPIs -->
+        <div class="dashboard-grid">
+            <div class="dash-card">
+                <div class="title">Total Offres</div>
+                <div class="value" id="kpi_total_offres">0</div>
+                <div class="sub-text" id="kpi_clotures_text">0 Payés / Clôturés</div>
+            </div>
+            <div class="dash-card">
+                <div class="title">Chiffre d'Affaires (HT)</div>
+                <div class="value" id="kpi_ca_total" style="color: #0284c7;">0 TND</div>
+                <div class="sub-text">Montant total des contrats</div>
+            </div>
+            <div class="dash-card">
+                <div class="title">Total Encaissé</div>
+                <div class="value" id="kpi_encaisse_total" style="color: #16a34a;">0 TND</div>
+                <div class="sub-text" id="kpi_reste_a_payer" style="color: #dc2626;">Reste: 0 TND</div>
+            </div>
+            <div class="dash-card">
+                <div class="title">Total Charges Total</div>
+                <div class="value" id="kpi_charge_total" style="color: #eab308;">0 TND</div>
+                <div class="sub-text">Formateurs + Pauses + Transport</div>
+            </div>
+            <div class="dash-card">
+                <div class="title">Gain Total (Bénéfice Net)</div>
+                <div class="value" id="kpi_gain_total" style="color: #10b981;">0 TND</div>
+                <div class="sub-text" id="kpi_marge_moyenne">Marge Moy: 0 %</div>
+            </div>
+        </div>
+
+        <!-- RECHERCHE & FILTRES -->
+        <div class="filters-bar">
+            <input type="text" id="filterSearch" class="search-input" placeholder="🔍 Rechercher client, ref, formation, formateur..." oninput="renderPipeline()">
+            <div>
+                <select id="filterStatutPaiement" onchange="renderPipeline()">
+                    <option value="">Tous les paiements</option>
+                    <option value="Payé / Clôturé">Payé / Clôturé</option>
+                    <option value="Partiellement Payé">Partiellement Payé</option>
+                    <option value="Non Payé">Non Payé</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; font-weight:600; color:#64748b;">Du: </label>
+                <input type="date" id="filterDateStart" onchange="renderPipeline()">
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; font-weight:600; color:#64748b;">Au: </label>
+                <input type="date" id="filterDateEnd" onchange="renderPipeline()">
+            </div>
+            <button class="btn" style="background:#e2e8f0; color:#475569;" onclick="resetFilters()">Réinitialiser</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="sticky-col-1">Actions</th>
+                        <th class="sticky-col-2">Entreprise Client</th>
+                        <th>Statut Paiement</th>
+                        <th>Encaissé (TND)</th>
+                        <th>Reste à Payer (TND)</th>
+                        <th>N° contrat / Réf</th>
+                        <th>Contact</th>
+                        <th>Email</th>
+                        <th>Intitulé de la Formation</th>
+                        <th>Hackerspace</th>
+                        <th>Nombre de participant</th>
+                        <th>Pause Café / Pers / Jour (TND)</th>
+                        <th>Tarif Formateur / Hour (TND)</th>
+                        <th>Frais Transport (TND)</th>
+                        <th>Heures par Jour</th>
+                        <th>Nombre de Jours</th>
+                        <th>Formateur / Instructeur</th>
+                        <th>Priorité</th>
+                        <th>Statut Offre</th>
+                        <th>Montant HT (TND)</th>
+                        <th>Total Charge (TND)</th>
+                        <th>Formateur (TND)</th>
+                        <th>Pause Café (TND)</th>
+                        <th>Gain (TND)</th>
+                        <th>Marge Est. (%)</th>
+                        <th>Date Dépôt</th>
+                        <th>Date Démarrage</th>
+                        <th>Détails</th>
+                    </tr>
+                </thead>
+                <tbody id="pipelineBody">
+                    <!-- Rendu Dynamique -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MODAL GESTION DES INSTRUCTEURS -->
+    <div id="instructorsModal" class="modal">
+        <div class="modal-content inst-modal-content">
+            <div class="modal-header">
+                <h3>👨‍🏫 Gestion de la Liste des Instructeurs / Formateurs</h3>
+                <span class="close-btn" onclick="closeInstructorsModal()">&times;</span>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: flex-end;">
+                <div class="form-group" style="flex: 1; min-width: 150px;">
+                    <label>Nom & Prénom *</label>
+                    <input type="text" id="inst_name" placeholder="Ex: Oumaima Dridi">
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 150px;">
+                    <label>Email</label>
+                    <input type="email" id="inst_email" placeholder="oumaima@gmail.com">
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 130px;">
+                    <label>Phone / Tél</label>
+                    <input type="text" id="inst_phone" placeholder="+216 98 000 000">
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 130px;">
+                    <label>Track / Spécialité</label>
+                    <input type="text" id="inst_track" placeholder="Ex: Web & Data">
+                </div>
+                <button class="btn btn-add" onclick="addInstructor()">+ Ajouter</button>
+                <button class="btn btn-excel-imp" onclick="document.getElementById('instExcelInput').click()">📥 Import Excel</button>
+                <input type="file" id="instExcelInput" accept=".xlsx, .xls" style="display: none;" onchange="importInstructorsFromExcel(event)">
+            </div>
+
+            <div class="table-container" style="max-height: 40vh;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom & Prénom</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Track / Spécialité</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="instructorsBody">
+                        <!-- Rendu Dynamique Instructeurs -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeInstructorsModal()">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FENETRE SIMULATEUR -->
+    <div id="simModal" class="modal">
+        <div class="modal-content sim-modal-content">
+            <div class="modal-header">
+                <h3>🧮 Simulateur de Prix, Charge & Marge</h3>
+                <span class="close-btn" onclick="closeSimModal()">&times;</span>
+            </div>
+            <div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Nombre de Participants</label>
+                        <input type="number" id="s_nb_part" value="10" min="1" oninput="runSimulation()">
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de Jours</label>
+                        <input type="number" id="s_nb_jours" value="3" min="1" oninput="runSimulation()">
+                    </div>
+                    <div class="form-group">
+                        <label>Heures par Jour</label>
+                        <input type="number" id="s_heures_jour" value="6" step="0.5" oninput="runSimulation()">
+                    </div>
+                    <div class="form-group">
+                        <label>Tarif Formateur / Heure (TND)</label>
+                        <input type="number" id="s_tarif_formateur" value="50" step="1" oninput="runSimulation()">
+                    </div>
+                    <div class="form-group">
+                        <label>Pause Café / Pers / Jour (TND)</label>
+                        <input type="number" id="s_pause_jour" value="12" step="1" oninput="runSimulation()">
+                    </div>
+                    <div class="form-group">
+                        <label>Transport Total (TND)</label>
+                        <input type="number" id="s_transport" value="50" step="5" oninput="runSimulation()">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Prix HT Proposé au Client (TND)</label>
+                        <input type="number" id="s_prix_client" value="3500" step="50" style="font-size: 1.1rem; font-weight: bold; border-color: #8b5cf6;" oninput="runSimulation()">
+                    </div>
+                </div>
+
+                <div class="sim-result-box">
+                    <div class="sim-card">
+                        <label>Formateur Total</label>
+                        <span id="res_formateur">0 TND</span>
+                    </div>
+                    <div class="sim-card">
+                        <label>Pause Café Total</label>
+                        <span id="res_pause">0 TND</span>
+                    </div>
+                    <div class="sim-card" style="background: #fefce8; border-color: #fef08a;">
+                        <label>Charge Totale</label>
+                        <span id="res_charge" style="color: #ca8a04;">0 TND</span>
+                    </div>
+                    <div class="sim-card">
+                        <label>Gain Estimé (Bénéfice)</label>
+                        <span id="res_gain" style="color: #16a34a;">0 TND</span>
+                    </div>
+                    <div class="sim-card" style="grid-column: 1 / -1; background: #f0fdf4; border-color: #bbf7d0;">
+                        <label>Marge Estimée</label>
+                        <span id="res_marge" style="color: #15803d; font-size: 1.4rem;">0 %</span>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeSimModal()">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CLIENT -->
+    <div id="clientModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Ajouter un Client / Offre</h3>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </div>
+            <form id="clientForm" onsubmit="saveClient(event)">
+                <input type="hidden" id="editIndex" value="-1">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Entreprise Client *</label>
+                        <input type="text" id="m_client" required>
+                    </div>
+                    <div class="form-group">
+                        <label>N° contrat / Réf</label>
+                        <input type="text" id="m_ref">
+                    </div>
+                    <div class="form-group">
+                        <label>Contact</label>
+                        <input type="text" id="m_contact">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="m_email">
+                    </div>
+                    <div class="form-group">
+                        <label>Intitulé de la Formation</label>
+                        <input type="text" id="m_formation">
+                    </div>
+                    <div class="form-group">
+                        <label>Hackerspace</label>
+                        <input type="text" id="m_hackerspace">
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de participant *</label>
+                        <input type="number" id="m_nb_part" value="1" min="1" oninput="autoCalculateModal()">
+                    </div>
+                    <div class="form-group">
+                        <label>Pause Café / Pers / Jour (TND)</label>
+                        <input type="number" step="0.01" id="m_pause_par_jour" value="0" oninput="autoCalculateModal()">
+                    </div>
+                    <div class="form-group">
+                        <label>Tarif Formateur / Hour (TND)</label>
+                        <input type="number" step="0.01" id="m_formateur_par_heure" value="0" oninput="autoCalculateModal()">
+                    </div>
+                    <div class="form-group">
+                        <label>Frais Transport Total (TND)</label>
+                        <input type="number" step="0.01" id="m_frais_transport" value="0" oninput="autoCalculateModal()">
+                    </div>
+                    <div class="form-group">
+                        <label>Heures par Jour</label>
+                        <input type="number" step="0.5" id="m_heures_par_jour" value="6" oninput="autoCalculateModal()">
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de Jours de Formation *</label>
+                        <input type="number" id="m_nb_jours" value="1" min="1" oninput="autoCalculateModal()">
+                    </div>
+
+                    <!-- DROPDOWN / LISTE DÉROULANTE DES INSTRUCTEURS -->
+                    <div class="form-group">
+                        <label>Formateur / Instructeur (Liste)</label>
+                        <select id="m_formateur">
+                            <!-- Options remplies dynamiquement -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Priorité</label>
+                        <select id="m_priorite">
+                            <option value="Basse">Basse</option>
+                            <option value="Moyenne" selected>Moyenne</option>
+                            <option value="Haute">Haute</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Statut Offre</label>
+                        <select id="m_statut">
+                            <option value="Prospect">Prospect</option>
+                            <option value="Devis Envoyé">Devis Envoyé</option>
+                            <option value="En Préparation Logistique">En Préparation Logistique</option>
+                            <option value="Payé / Clôturé">Payé / Clôturé</option>
+                            <option value="Perdu">Perdu</option>
+                        </select>
+                    </div>
+
+                    <!-- SUIVI DU PAIEMENT ET CHARGES -->
+                    <div class="form-group">
+                        <label>Statut Paiement *</label>
+                        <select id="m_statut_paiement" onchange="autoCalculateModal()">
+                            <option value="Non Payé">Non Payé</option>
+                            <option value="Partiellement Payé">Partiellement Payé</option>
+                            <option value="Payé / Clôturé">Payé / Clôturé</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Montant HT Proposé (TND) *</label>
+                        <input type="number" step="0.01" id="m_montant_ht" value="0" oninput="autoCalculateModal()">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Montant Encaissé (TND)</label>
+                        <input type="number" step="0.01" id="m_montant_encaisse" value="0" oninput="autoCalculateModal()">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Reste à Payer (TND)</label>
+                        <input type="number" step="0.01" id="m_reste_a_payer" value="0" readonly style="color: #dc2626;">
+                    </div>
+
+                    <!-- CALCULATED FIELDS -->
+                    <div class="form-group">
+                        <label>Formateur Total (TND)</label>
+                        <input type="number" step="0.01" id="m_cost_formateur_tot" value="0" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Pause Café Total (TND)</label>
+                        <input type="number" step="0.01" id="m_cost_pause_tot" value="0" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Charge Totale (TND)</label>
+                        <input type="number" step="0.01" id="m_charge" value="0" readonly style="font-weight: bold; color: #d97706;">
+                    </div>
+                    <div class="form-group">
+                        <label>Gain / Bénéfice (TND)</label>
+                        <input type="number" step="0.01" id="m_gain" value="0" readonly style="font-weight: bold; color: #16a34a;">
+                    </div>
+                    <div class="form-group">
+                        <label>Marge Est. (%)</label>
+                        <input type="number" step="0.1" id="m_marge_est" value="0" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Date Dépôt Dossier</label>
+                        <input type="date" id="m_date_depot">
+                    </div>
+                    <div class="form-group">
+                        <label>Date de démarrage</label>
+                        <input type="date" id="m_date_demarrage">
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Détails / Remarques</label>
+                        <textarea id="m_details" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn-save">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // DONNEES INSTRUCTEURS (avec LocalStorage)
+        let instructorsList = JSON.parse(localStorage.getItem('crm_instructors')) || [
+            { name: "Oumaima Dridi", email: "oumaima@hackerspace.tn", phone: "+216 98 111 222", track: "Data Science" },
+            { name: "Karim Tazi", email: "karim@devops.tn", phone: "+216 22 333 444", track: "DevOps & Cloud" },
+            { name: "Sami Mansour", email: "sami@web.tn", phone: "+216 55 666 777", track: "Fullstack Web" }
+        ];
+
+        // DONNEES PIPELINE (avec LocalStorage)
+        let pipelineData = JSON.parse(localStorage.getItem('crm_pipeline')) || [
+            {
+                client: "Mentor Nations",
+                ref: "REF-2026-001",
+                contact: "Ahmed Ben Ali",
+                email: "contact@mentornations.org",
+                details: "Acompte 50% reçu",
+                formation: "Data Science & Dev Web",
+                hackerspace: "Tunis Central",
+                nb_part: 20,
+                pause_par_jour: 15,
+                formateur_par_heure: 60,
+                frais_transport: 100,
+                heures_par_jour: 6,
+                nb_jours: 5,
+                formateur: "Oumaima Dridi",
+                priorite: "Haute",
+                statut: "Payé / Clôturé",
+                statut_paiement: "Payé / Clôturé",
+                montant_ht: 8000,
+                montant_encaisse: 8000,
+                date_depot: "2026-01-15",
+                date_demarrage: "2026-03-01"
+            },
+            {
+                client: "Tech Startup TN",
+                ref: "REF-2026-002",
+                contact: "Sarra Mansour",
+                email: "sarra@tech.tn",
+                details: "En cours de paiement",
+                formation: "DevOps & Cloud",
+                hackerspace: "Ariana",
+                nb_part: 10,
+                pause_par_jour: 12,
+                formateur_par_heure: 50,
+                frais_transport: 50,
+                heures_par_jour: 6,
+                nb_jours: 3,
+                formateur: "Karim Tazi",
+                priorite: "Moyenne",
+                statut: "En Préparation Logistique",
+                statut_paiement: "Partiellement Payé",
+                montant_ht: 3500,
+                montant_encaisse: 1500,
+                date_depot: "2026-02-10",
+                date_demarrage: "2026-03-20"
+            }
+        ];
+
+        function saveData() {
+            localStorage.setItem('crm_instructors', JSON.stringify(instructorsList));
+            localStorage.setItem('crm_pipeline', JSON.stringify(pipelineData));
+        }
+
+        /* GESTION DES INSTRUCTEURS */
+        function openInstructorsModal() {
+            document.getElementById('instructorsModal').style.display = 'flex';
+            renderInstructorsTable();
+        }
+
+        function closeInstructorsModal() {
+            document.getElementById('instructorsModal').style.display = 'none';
+        }
+
+        function renderInstructorsTable() {
+            const tbody = document.getElementById('instructorsBody');
+            tbody.innerHTML = '';
+            instructorsList.forEach((inst, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${inst.name}</strong></td>
+                    <td>${inst.email || '-'}</td>
+                    <td>${inst.phone || '-'}</td>
+                    <td><span class="badge-status">${inst.track || '-'}</span></td>
+                    <td><button class="btn-action btn-delete" onclick="deleteInstructor(${index})">Suppr</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            populateInstructorDropdown();
+        }
+
+        function addInstructor() {
+            const name = document.getElementById('inst_name').value.trim();
+            const email = document.getElementById('inst_email').value.trim();
+            const phone = document.getElementById('inst_phone').value.trim();
+            const track = document.getElementById('inst_track').value.trim();
+
+            if (!name) {
+                alert("Le nom de l'instructeur est obligatoire!");
+                return;
+            }
+
+            instructorsList.push({ name, email, phone, track });
+            saveData();
+            renderInstructorsTable();
+
+            document.getElementById('inst_name').value = '';
+            document.getElementById('inst_email').value = '';
+            document.getElementById('inst_phone').value = '';
+            document.getElementById('inst_track').value = '';
+        }
+
+        function deleteInstructor(index) {
+            if (confirm("Voulez-vous supprimer cet instructeur ?")) {
+                instructorsList.splice(index, 1);
+                saveData();
+                renderInstructorsTable();
+            }
+        }
+
+        function importInstructorsFromExcel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const importedJson = XLSX.utils.sheet_to_json(worksheet);
+
+                if (importedJson && importedJson.length > 0) {
+                    importedJson.forEach(row => {
+                        const name = row['Nom'] || row['Name'] || row['Instructeur'] || row['Formateur'] || row['name'];
+                        if (name) {
+                            instructorsList.push({
+                                name: name,
+                                email: row['Email'] || row['email'] || '',
+                                phone: row['Phone'] || row['Tél'] || row['Tel'] || row['phone'] || '',
+                                track: row['Track'] || row['Spécialité'] || row['track'] || ''
+                            });
+                        }
+                    });
+                    saveData();
+                    renderInstructorsTable();
+                    alert("Succès ! Instructeurs importés.");
+                } else {
+                    alert("Fichier vide ou invalide.");
+                }
+                e.target.value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function populateInstructorDropdown() {
+            const select = document.getElementById('m_formateur');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">-- Sélectionner Instructeur --</option>';
+
+            instructorsList.forEach(inst => {
+                const opt = document.createElement('option');
+                opt.value = inst.name;
+                opt.textContent = `${inst.name} ${inst.track ? '(' + inst.track + ')' : ''}`;
+                select.appendChild(opt);
+            });
+
+            if (currentValue) select.value = currentValue;
+        }
+
+        /* CALCUL AUTOMATIQUE MODAL CLIENT */
+        function autoCalculateModal() {
+            const nbJours = parseFloat(document.getElementById('m_nb_jours').value) || 0;
+            const nbPart = parseFloat(document.getElementById('m_nb_part').value) || 0;
+            const pauseParJour = parseFloat(document.getElementById('m_pause_par_jour').value) || 0;
+            const formateurParHeure = parseFloat(document.getElementById('m_formateur_par_heure').value) || 0;
+            const heuresParJour = parseFloat(document.getElementById('m_heures_par_jour').value) || 0;
+            const fraisTransport = parseFloat(document.getElementById('m_frais_transport').value) || 0;
+            const montantHt = parseFloat(document.getElementById('m_montant_ht').value) || 0;
+            const statutPaiement = document.getElementById('m_statut_paiement').value;
+
+            let encaisse = parseFloat(document.getElementById('m_montant_encaisse').value) || 0;
+
+            if (statutPaiement === 'Payé / Clôturé') {
+                encaisse = montantHt;
+                document.getElementById('m_montant_encaisse').value = encaisse.toFixed(2);
+            } else if (statutPaiement === 'Non Payé') {
+                encaisse = 0;
+                document.getElementById('m_montant_encaisse').value = 0;
+            }
+
+            const reste = Math.max(0, montantHt - encaisse);
+            document.getElementById('m_reste_a_payer').value = reste.toFixed(2);
+
+            const costFormateurTot = (nbJours * heuresParJour * formateurParHeure);
+            const costPauseTot = nbJours * nbPart * pauseParJour;
+
+            const charge = costFormateurTot + costPauseTot + fraisTransport;
+            const gain = montantHt - charge;
+            const margeEst = montantHt > 0 ? (gain / montantHt) * 100 : 0;
+
+            document.getElementById('m_cost_formateur_tot').value = costFormateurTot.toFixed(2);
+            document.getElementById('m_cost_pause_tot').value = costPauseTot.toFixed(2);
+            document.getElementById('m_charge').value = charge.toFixed(2);
+            document.getElementById('m_gain').value = gain.toFixed(2);
+            document.getElementById('m_marge_est').value = margeEst.toFixed(1);
+        }
+
+        function renderPipeline() {
+            const tbody = document.getElementById('pipelineBody');
+            tbody.innerHTML = '';
+
+            const searchVal = document.getElementById('filterSearch').value.toLowerCase();
+            const filterPaiement = document.getElementById('filterStatutPaiement').value;
+            const dateStart = document.getElementById('filterDateStart').value;
+            const dateEnd = document.getElementById('filterDateEnd').value;
+
+            let totalCa = 0;
+            let totalEncaisse = 0;
+            let totalCharges = 0;
+            let totalGain = 0;
+            let totalMarges = 0;
+            let countVisible = 0;
+            let countClotures = 0;
+
+            pipelineData.forEach((item, index) => {
+                const matchSearch = !searchVal ||
+                    (item.client && item.client.toLowerCase().includes(searchVal)) ||
+                    (item.ref && item.ref.toLowerCase().includes(searchVal)) ||
+                    (item.formation && item.formation.toLowerCase().includes(searchVal)) ||
+                    (item.formateur && item.formateur.toLowerCase().includes(searchVal));
+
+                const matchPaiement = !filterPaiement || (item.statut_paiement === filterPaiement);
+
+                const itemDate = item.date_demarrage || item.date_depot;
+                let matchDate = true;
+                if (dateStart && itemDate && itemDate < dateStart) matchDate = false;
+                if (dateEnd && itemDate && itemDate > dateEnd) matchDate = false;
+
+                if (!matchSearch || !matchPaiement || !matchDate) return;
+
+                countVisible++;
+
+                const nbJours = parseFloat(item.nb_jours) || 0;
+                const nbPart = parseFloat(item.nb_part) || 0;
+                const pauseParJour = parseFloat(item.pause_par_jour) || 0;
+                const formateurParHeure = parseFloat(item.formateur_par_heure) || 0;
+                const heuresParJour = parseFloat(item.heures_par_jour) || 0;
+                const fraisTransport = parseFloat(item.frais_transport) || 0;
+                const montantHt = parseFloat(item.montant_ht) || 0;
+                const encaisse = parseFloat(item.montant_encaisse) || (item.statut_paiement === 'Payé / Clôturé' ? montantHt : 0);
+                const reste = Math.max(0, montantHt - encaisse);
+
+                const costFormateurTot = (nbJours * heuresParJour * formateurParHeure);
+                const costPauseTot = nbJours * nbPart * pauseParJour;
+                const charge = costFormateurTot + costPauseTot + fraisTransport;
+                const gain = montantHt - charge;
+                const margeEst = montantHt > 0 ? (gain / montantHt) * 100 : 0;
+
+                totalCa += montantHt;
+                totalEncaisse += encaisse;
+                totalCharges += charge;
+                totalGain += gain;
+                totalMarges += margeEst;
+
+                if (item.statut_paiement === 'Payé / Clôturé' || item.statut === 'Payé / Clôturé') {
+                    countClotures++;
+                }
+
+                let badgeClass = 'badge-nonpaye';
+                if (item.statut_paiement === 'Payé / Clôturé') badgeClass = 'badge-paye';
+                else if (item.statut_paiement === 'Partiellement Payé') badgeClass = 'badge-partiel';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="sticky-col-1">
+                        <button class="btn-action btn-edit" onclick="editClient(${index})">Edit</button>
+                        <button class="btn-action btn-delete" onclick="deleteClient(${index})">Suppr</button>
+                    </td>
+                    <td class="sticky-col-2"><strong>${item.client || '-'}</strong></td>
+                    <td><span class="badge-status ${badgeClass}">${item.statut_paiement || 'Non Payé'}</span></td>
+                    <td style="color: #16a34a; font-weight: bold;">${Number(encaisse).toLocaleString('fr-FR')} TND</td>
+                    <td style="color: #dc2626; font-weight: bold;">${Number(reste).toLocaleString('fr-FR')} TND</td>
+                    <td>${item.ref || '-'}</td>
+                    <td>${item.contact || '-'}</td>
+                    <td>${item.email || '-'}</td>
+                    <td>${item.formation || '-'}</td>
+                    <td>${item.hackerspace || '-'}</td>
+                    <td>${nbPart} part.</td>
+                    <td>${Number(pauseParJour).toLocaleString('fr-FR')} TND</td>
+                    <td>${Number(formateurParHeure).toLocaleString('fr-FR')} TND</td>
+                    <td>${Number(fraisTransport).toLocaleString('fr-FR')} TND</td>
+                    <td>${heuresParJour} h/j</td>
+                    <td>${nbJours} jrs</td>
+                    <td><strong>${item.formateur || '-'}</strong></td>
+                    <td><span class="badge-priority p-${item.priorite}">${item.priorite || '-'}</span></td>
+                    <td><span class="badge-status">${item.statut || '-'}</span></td>
+                    <td><strong>${Number(montantHt).toLocaleString('fr-FR')} TND</strong></td>
+                    <td style="color: #ca8a04; font-weight: bold;">${Number(charge).toLocaleString('fr-FR')} TND</td>
+                    <td>${Number(costFormateurTot).toLocaleString('fr-FR')} TND</td>
+                    <td>${Number(costPauseTot).toLocaleString('fr-FR')} TND</td>
+                    <td style="color: #10b981; font-weight: bold;">${Number(gain).toLocaleString('fr-FR')} TND</td>
+                    <td style="font-weight: bold; color: #0284c7;">${Number(margeEst).toFixed(1)} %</td>
+                    <td>${item.date_depot || '-'}</td>
+                    <td>${item.date_demarrage || '-'}</td>
+                    <td>${item.details || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const totalReste = totalCa - totalEncaisse;
+
+            document.getElementById('kpi_total_offres').innerText = countVisible;
+            document.getElementById('kpi_clotures_text').innerText = countClotures + ' Payés / Clôturés';
+            document.getElementById('kpi_ca_total').innerText = totalCa.toLocaleString('fr-FR') + ' TND';
+            document.getElementById('kpi_encaisse_total').innerText = totalEncaisse.toLocaleString('fr-FR') + ' TND';
+            document.getElementById('kpi_reste_a_payer').innerText = 'Reste: ' + totalReste.toLocaleString('fr-FR') + ' TND';
+            document.getElementById('kpi_charge_total').innerText = totalCharges.toLocaleString('fr-FR') + ' TND';
+            document.getElementById('kpi_gain_total').innerText = totalGain.toLocaleString('fr-FR') + ' TND';
+            document.getElementById('kpi_marge_moyenne').innerText = 'Marge Moy: ' + (countVisible > 0 ? (totalMarges / countVisible).toFixed(1) : 0) + ' %';
+        }
+
+        function resetFilters() {
+            document.getElementById('filterSearch').value = '';
+            document.getElementById('filterStatutPaiement').value = '';
+            document.getElementById('filterDateStart').value = '';
+            document.getElementById('filterDateEnd').value = '';
+            renderPipeline();
+        }
+
+        /* EXPORT / IMPORT EXCEL */
+        function exportToExcel() {
+            const ws = XLSX.utils.json_to_sheet(pipelineData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Pipeline_CRM");
+            XLSX.writeFile(wb, "Pipeline_CRM_Paiements_Charges.xlsx");
+        }
+
+        function importFromExcel(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const importedJson = XLSX.utils.sheet_to_json(worksheet);
+
+                if (importedJson && importedJson.length > 0) {
+                    pipelineData = pipelineData.concat(importedJson);
+                    saveData();
+                    renderPipeline();
+                    alert("Succès ! " + importedJson.length + " client(s) importé(s).");
+                } else {
+                    alert("Fichier vide ou invalide.");
+                }
+                e.target.value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        /* SIMULATEUR */
+        function openSimModal() {
+            document.getElementById('simModal').style.display = 'flex';
+            runSimulation();
+        }
+
+        function closeSimModal() {
+            document.getElementById('simModal').style.display = 'none';
+        }
+
+        function runSimulation() {
+            const nbPart = parseFloat(document.getElementById('s_nb_part').value) || 0;
+            const nbJours = parseFloat(document.getElementById('s_nb_jours').value) || 0;
+            const heuresJour = parseFloat(document.getElementById('s_heures_jour').value) || 0;
+            const tarifFormateur = parseFloat(document.getElementById('s_tarif_formateur').value) || 0;
+            const pauseJour = parseFloat(document.getElementById('s_pause_jour').value) || 0;
+            const transport = parseFloat(document.getElementById('s_transport').value) || 0;
+            const prixClient = parseFloat(document.getElementById('s_prix_client').value) || 0;
+
+            const costFormateur = nbJours * heuresJour * tarifFormateur;
+            const costPause = nbJours * nbPart * pauseJour;
+            const totalCharge = costFormateur + costPause + transport;
+            const gain = prixClient - totalCharge;
+            const marge = prixClient > 0 ? (gain / prixClient) * 100 : 0;
+
+            document.getElementById('res_formateur').innerText = costFormateur.toLocaleString('fr-FR') + ' TND';
+            document.getElementById('res_pause').innerText = costPause.toLocaleString('fr-FR') + ' TND';
+            document.getElementById('res_charge').innerText = totalCharge.toLocaleString('fr-FR') + ' TND';
+            document.getElementById('res_gain').innerText = gain.toLocaleString('fr-FR') + ' TND';
+            document.getElementById('res_marge').innerText = marge.toFixed(1) + ' %';
+        }
+
+        /* MODAL CLIENT */
+        function openModal(isEdit = false) {
+            populateInstructorDropdown();
+            document.getElementById('clientModal').style.display = 'flex';
+            if (!isEdit) {
+                document.getElementById('modalTitle').innerText = 'Ajouter un Nouveau Client';
+                document.getElementById('editIndex').value = '-1';
+                document.getElementById('clientForm').reset();
+                autoCalculateModal();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('clientModal').style.display = 'none';
+        }
+
+        function editClient(index) {
+            populateInstructorDropdown();
+            const item = pipelineData[index];
+            document.getElementById('modalTitle').innerText = 'Modifier le Client: ' + item.client;
+            document.getElementById('editIndex').value = index;
+
+            document.getElementById('m_client').value = item.client || '';
+            document.getElementById('m_ref').value = item.ref || '';
+            document.getElementById('m_contact').value = item.contact || '';
+            document.getElementById('m_email').value = item.email || '';
+            document.getElementById('m_details').value = item.details || '';
+            document.getElementById('m_formation').value = item.formation || '';
+            document.getElementById('m_hackerspace').value = item.hackerspace || '';
+            document.getElementById('m_nb_part').value = item.nb_part || 1;
+            document.getElementById('m_pause_par_jour').value = item.pause_par_jour || 0;
+            document.getElementById('m_formateur_par_heure').value = item.formateur_par_heure || 0;
+            document.getElementById('m_frais_transport').value = item.frais_transport || 0;
+            document.getElementById('m_heures_par_jour').value = item.heures_par_jour || 6;
+            document.getElementById('m_nb_jours').value = item.nb_jours || 1;
+            document.getElementById('m_formateur').value = item.formateur || '';
+            document.getElementById('m_priorite').value = item.priorite || 'Moyenne';
+            document.getElementById('m_statut').value = item.statut || 'En Préparation Logistique';
+            document.getElementById('m_statut_paiement').value = item.statut_paiement || 'Non Payé';
+            document.getElementById('m_montant_ht').value = item.montant_ht || 0;
+            document.getElementById('m_montant_encaisse').value = item.montant_encaisse || 0;
+            document.getElementById('m_date_depot').value = item.date_depot || '';
+            document.getElementById('m_date_demarrage').value = item.date_demarrage || '';
+
+            autoCalculateModal();
+            openModal(true);
+        }
+
+        function deleteClient(index) {
+            if (confirm("Voulez-vous supprimer ce client ?")) {
+                pipelineData.splice(index, 1);
+                saveData();
+                renderPipeline();
+            }
+        }
+
+        function saveClient(e) {
+            e.preventDefault();
+            const index = parseInt(document.getElementById('editIndex').value);
+
+            const newItem = {
+                client: document.getElementById('m_client').value,
+                ref: document.getElementById('m_ref').value,
+                contact: document.getElementById('m_contact').value,
+                email: document.getElementById('m_email').value,
+                details: document.getElementById('m_details').value,
+                formation: document.getElementById('m_formation').value,
+                hackerspace: document.getElementById('m_hackerspace').value,
+                nb_part: parseFloat(document.getElementById('m_nb_part').value) || 0,
+                pause_par_jour: parseFloat(document.getElementById('m_pause_par_jour').value) || 0,
+                formateur_par_heure: parseFloat(document.getElementById('m_formateur_par_heure').value) || 0,
+                frais_transport: parseFloat(document.getElementById('m_frais_transport').value) || 0,
+                heures_par_jour: parseFloat(document.getElementById('m_heures_par_jour').value) || 0,
+                nb_jours: parseFloat(document.getElementById('m_nb_jours').value) || 0,
+                formateur: document.getElementById('m_formateur').value,
+                priorite: document.getElementById('m_priorite').value,
+                statut: document.getElementById('m_statut').value,
+                statut_paiement: document.getElementById('m_statut_paiement').value,
+                montant_ht: parseFloat(document.getElementById('m_montant_ht').value) || 0,
+                montant_encaisse: parseFloat(document.getElementById('m_montant_encaisse').value) || 0,
+                date_depot: document.getElementById('m_date_depot').value,
+                date_demarrage: document.getElementById('m_date_demarrage').value
+            };
+
+            if (index === -1) {
+                pipelineData.push(newItem);
+            } else {
+                pipelineData[index] = newItem;
+            }
+
+            saveData();
+            closeModal();
+            renderPipeline();
+        }
+
+        // INIT
+        populateInstructorDropdown();
+        renderPipeline();
+    </script>
+</body>
+</html>
